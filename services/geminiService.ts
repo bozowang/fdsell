@@ -1,5 +1,5 @@
-﻿import { GoogleGenAI, Type } from "@google/genai";
-import { Restaurant, MenuItem, CartItem, OrderDetails } from '../types';
+import { GoogleGenAI, Type } from "@google/genai";
+import { Restaurant, MenuItem, CartItem, OrderDetails } from '../types.ts';
 
 // Gemini AI服務
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
