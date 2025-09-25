@@ -1,28 +1,11 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gemini 美食外送</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <!-- 加入 Babel Standalone (翻譯機) -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script type="importmap">
-    {
-      "imports": {
-        "@google/genai": "https://aistudiocdn.com/@google/genai@^1.20.0",
-        "react-dom/client": "https://aistudiocdn.com/react-dom@^19.1.1/client",
-        "react": "https://aistudiocdn.com/react@^19.1.1",
-        "react/": "https://aistudiocdn.com/react@^19.1.1/",
-        "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/"
-      }
-    }
-    </script>
-</head>
-<body class="bg-gray-50">
-    <div id="root"></div>
-    <!-- 將 script 類型改為 "text/babel" 來啟用翻譯 -->
-    <script type="text/babel" data-type="module" src="index.tsx"></script>
-  </body>
-</html>
+<script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
+    "react/": "https://aistudiocdn.com/react@^19.1.1/",
+    "react": "https://aistudiocdn.com/react@^19.1.1",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.20.0"
+  }
+}
+</script>
+full contents of index.html
