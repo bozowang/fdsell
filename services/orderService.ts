@@ -1,5 +1,5 @@
-﻿import { ConfirmedOrder } from '../types';
-import { SCRIPT_URL } from '../constants';
+import { ConfirmedOrder } from '../types.ts';
+import { SCRIPT_URL } from '../constants.ts';
 
 export const saveOrder = async (orderData: ConfirmedOrder): Promise<{ success: boolean, message: string }> => {
     try {
