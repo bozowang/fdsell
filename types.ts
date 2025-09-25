@@ -1,4 +1,4 @@
-﻿export enum View {
+export enum View {
   RESTAURANTS = 'restaurants',
   MENU = 'menu',
   CART = 'cart',
