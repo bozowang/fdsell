@@ -1,7 +1,7 @@
-﻿import React from 'react';
-import { Restaurant, MenuItem } from '../types';
-import { Spinner } from './Spinner';
-import { MenuItemCard } from './MenuItemCard';
+import React from 'react';
+import { Restaurant, MenuItem } from '../types.ts';
+import { Spinner } from './Spinner.tsx';
+import { MenuItemCard } from './MenuItemCard.tsx';
 
 interface MenuViewProps {
     restaurant: Restaurant;
