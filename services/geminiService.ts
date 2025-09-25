@@ -1,9 +1,21 @@
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { Restaurant, MenuItem, OrderDetails, CartItem } from '../types.ts';
 
-// FIX: Implement Gemini API service for fetching data and generating content.
-// Per guidelines, initialize with API key from environment variables.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+let ai: GoogleGenAI | null = null;
+
+/**
+ * Initializes the GoogleGenAI instance with the provided API key.
+ * This must be called before any other functions in this module.
+ * @param apiKey The user's Google Gemini API key.
+ */
+export const initializeAi = (apiKey: string) => {
+    if (!apiKey) {
+        console.error("Initialization failed: API key is missing.");
+        return;
+    }
+    ai = new GoogleGenAI({ apiKey });
+};
+
 
 // Schema for a single restaurant object.
 const restaurantSchema = {
@@ -36,6 +48,10 @@ const menuItemSchema = {
  * Fetches a list of restaurants using the Gemini API.
  */
 export const fetchRestaurants = async (): Promise<Restaurant[]> => {
+    if (!ai) {
+        console.error("AI service is not initialized. Please provide an API key.");
+        return [];
+    }
     try {
         const prompt = "List 12 popular and diverse food delivery restaurants in Taipei, Taiwan. Provide a variety of cuisine types. For each restaurant, include a unique id, name, category, a realistic rating between 3.5 and 5.0, number of reviews, estimated delivery time, minimum order value, and a relevant image URL.";
 
@@ -51,7 +67,6 @@ export const fetchRestaurants = async (): Promise<Restaurant[]> => {
             }
         });
         
-        // Per guidelines, use response.text to get the generated content.
         const jsonText = response.text.trim();
         const restaurants = JSON.parse(jsonText);
         return restaurants;
@@ -66,6 +81,10 @@ export const fetchRestaurants = async (): Promise<Restaurant[]> => {
  * @param restaurantName The name of the restaurant.
  */
 export const fetchMenu = async (restaurantName: string): Promise<MenuItem[]> => {
+    if (!ai) {
+        console.error("AI service is not initialized. Please provide an API key.");
+        return [];
+    }
     try {
         const prompt = `Generate a realistic menu with 8-12 items for a restaurant in Taiwan called "${restaurantName}". For each menu item, provide a unique id, its name, and price in TWD.`;
         
@@ -98,6 +117,14 @@ export const fetchMenu = async (restaurantName: string): Promise<MenuItem[]> => 
  * @param cart The items in the cart.
  */
 export const generateOrderConfirmation = async (orderDetails: OrderDetails, cart: CartItem[]): Promise<{orderNumber: string, estimatedDeliveryTime: string}> => {
+    if (!ai) {
+        console.error("AI service is not initialized. Please provide an API key.");
+        // Provide a fallback in case of API failure.
+        return {
+            orderNumber: `ORD-${Date.now().toString().slice(-6)}`,
+            estimatedDeliveryTime: "30-45 分鐘"
+        };
+    }
     try {
         const itemsString = cart.map(item => `${item.name} (x${item.quantity})`).join(', ');
         const prompt = `A customer named ${orderDetails.customerName} has placed a food delivery order for these items: ${itemsString}. The delivery address is ${orderDetails.deliveryAddress}. Please generate a unique 8-character alphanumeric order number and estimate the delivery time. The current time is ${new Date().toLocaleTimeString('en-US', { hour12: false, timeZone: 'Asia/Taipei' })}. Assume delivery takes between 25 to 50 minutes. Respond in JSON.`;
