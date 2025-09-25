@@ -1,5 +1,5 @@
-﻿import React, { useState } from 'react';
-import { OrderDetails } from '../types';
+import React, { useState } from 'react';
+import { OrderDetails } from '../types.ts';
 
 interface CheckoutViewProps {
     onSubmit: (details: OrderDetails) => void;
