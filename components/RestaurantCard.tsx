@@ -1,6 +1,6 @@
-﻿import React from 'react';
-import { Restaurant } from '../types';
-import { StarRating } from './StarRating';
+import React from 'react';
+import { Restaurant } from '../types.ts';
+import { StarRating } from './StarRating.tsx';
 
 interface RestaurantCardProps {
     restaurant: Restaurant;
