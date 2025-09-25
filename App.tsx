@@ -1,16 +1,16 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
-import { View, Restaurant, MenuItem, CartItem, OrderDetails, ConfirmedOrder } from './types';
-import { generateRestaurantData, generateMenuForRestaurant, processOrder } from './services/geminiService';
-import { saveOrder } from './services/orderService';
-import { Header } from './components/Header';
-import { Spinner } from './components/Spinner';
-import { Alert } from './components/Alert';
-import { RestaurantList } from './components/RestaurantList';
-import { MenuView } from './components/MenuView';
-import { CartView } from './components/CartView';
-import { CheckoutView } from './components/CheckoutView';
-import { ConfirmationView } from './components/ConfirmationView';
-import { SHIPPING_FEE } from './constants';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Restaurant, MenuItem, CartItem, OrderDetails, ConfirmedOrder } from './types.ts';
+import { generateRestaurantData, generateMenuForRestaurant, processOrder } from './services/geminiService.ts';
+import { saveOrder } from './services/orderService.ts';
+import { Header } from './components/Header.tsx';
+import { Spinner } from './components/Spinner.tsx';
+import { Alert } from './components/Alert.tsx';
+import { RestaurantList } from './components/RestaurantList.tsx';
+import { MenuView } from './components/MenuView.tsx';
+import { CartView } from './components/CartView.tsx';
+import { CheckoutView } from './components/CheckoutView.tsx';
+import { ConfirmationView } from './components/ConfirmationView.tsx';
+import { SHIPPING_FEE } from './constants.ts';
 
 // 主應用組件
 export const App = () => {
