@@ -1,6 +1,6 @@
-﻿import React from 'react';
-import { CartItem } from '../types';
-import { SHIPPING_FEE } from '../constants';
+import React from 'react';
+import { CartItem } from '../types.ts';
+import { SHIPPING_FEE } from '../constants.ts';
 
 interface CartViewProps {
     cart: CartItem[];
