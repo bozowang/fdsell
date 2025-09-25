@@ -1,5 +1,5 @@
-﻿{
+{
   "name": "Gemini Food Delivery",
-  "description": "A food delivery application that uses the Gemini API to dynamically generate restaurant listings, menus, and process orders.",
+  "description": "A food delivery web application that uses the Gemini API to dynamically generate restaurant listings, menus, and process orders. It features a complete ordering flow from restaurant selection to checkout and confirmation.",
   "requestFramePermissions": []
 }

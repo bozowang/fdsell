@@ -1,31 +1,31 @@
 export enum View {
-  RESTAURANTS = 'restaurants',
-  MENU = 'menu',
-  CART = 'cart',
-  CHECKOUT = 'checkout',
-  CONFIRMATION = 'confirmation',
+    RESTAURANTS = 'restaurants',
+    MENU = 'menu',
+    CART = 'cart',
+    CHECKOUT = 'checkout',
+    CONFIRMATION = 'confirmation',
 }
 
 export interface Restaurant {
-  id: string;
-  name: string;
-  category: string;
-  rating: number;
-  reviews: number;
-  deliveryTime: string;
-  minOrder: number;
-  image: string;
+    id: string;
+    name: string;
+    category: string;
+    rating: number;
+    reviews: number;
+    deliveryTime: string;
+    minOrder: number;
+    image: string;
 }
 
 export interface MenuItem {
-  id: string;
-  name: string;
-  price: number;
-  restaurantName: string;
+    id: string;
+    name: string;
+    price: number;
+    restaurantName: string;
 }
 
 export interface CartItem extends MenuItem {
-  quantity: number;
+    quantity: number;
 }
 
 export interface OrderDetails {
@@ -39,8 +39,13 @@ export interface OrderDetails {
 export interface ConfirmedOrder extends OrderDetails {
     orderNumber: string;
     estimatedDeliveryTime: string;
-    items: { name: string; quantity: number }[];
+    items: CartItem[];
     subtotal: number;
     shippingFee: number;
     total: number;
+}
+
+export interface AlertInfo {
+    message: string;
+    type: 'success' | 'error';
 }
