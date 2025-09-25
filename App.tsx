@@ -1,181 +1,205 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Restaurant, MenuItem, CartItem, OrderDetails, ConfirmedOrder } from './types.ts';
-import { generateRestaurantData, generateMenuForRestaurant, processOrder } from './services/geminiService.ts';
+import { fetchRestaurants, fetchMenu, generateOrderConfirmation } from './services/geminiService.ts';
 import { saveOrder } from './services/orderService.ts';
+import { SHIPPING_FEE } from './constants.ts';
 import { Header } from './components/Header.tsx';
-import { Spinner } from './components/Spinner.tsx';
-import { Alert } from './components/Alert.tsx';
 import { RestaurantList } from './components/RestaurantList.tsx';
 import { MenuView } from './components/MenuView.tsx';
 import { CartView } from './components/CartView.tsx';
 import { CheckoutView } from './components/CheckoutView.tsx';
 import { ConfirmationView } from './components/ConfirmationView.tsx';
-import { SHIPPING_FEE } from './constants.ts';
+import { Spinner } from './components/Spinner.tsx';
+import { Alert } from './components/Alert.tsx';
 
-// 主應用組件
+// FIX: Implement the main application component, orchestrating state and views.
+// This resolves the "not a module" error in index.tsx by providing an exported App component.
 export const App = () => {
-  const [view, setView] = useState<View>(View.RESTAURANTS);
-  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
-  const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
-  const [cart, setCart] = useState<CartItem[]>(() => {
-    try {
-      const savedCart = localStorage.getItem('foodDeliveryCart');
-      return savedCart ? JSON.parse(savedCart) : [];
-    } catch (error) {
-      return [];
-    }
-  });
-  const [confirmedOrder, setConfirmedOrder] = useState<ConfirmedOrder | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isMenuLoading, setIsMenuLoading] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [alert, setAlert] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+    const [view, setView] = useState<View>(View.RESTAURANTS);
+    const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+    const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
+    const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+    const [cart, setCart] = useState<CartItem[]>([]);
+    const [confirmedOrder, setConfirmedOrder] = useState<ConfirmedOrder | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [alert, setAlert] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  useEffect(() => {
-    const fetchRestaurants = async () => {
-      setIsLoading(true);
-      const data = await generateRestaurantData();
-      setRestaurants(data);
-      setIsLoading(false);
-    };
-    fetchRestaurants();
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem('foodDeliveryCart', JSON.stringify(cart));
-  }, [cart]);
-
-  const showAlert = (message: string, type: 'success' | 'error' = 'success') => {
-    setAlert({ message, type });
-  };
-
-  const handleSelectRestaurant = useCallback(async (restaurant: Restaurant) => {
-    setSelectedRestaurant(restaurant);
-    setView(View.MENU);
-    setIsMenuLoading(true);
-    const menuData = await generateMenuForRestaurant(restaurant.name);
-    setMenuItems(menuData);
-    setIsMenuLoading(false);
-  }, []);
-
-  const handleAddToCart = (item: MenuItem) => {
-    setCart(prevCart => {
-      const existingItem = prevCart.find(cartItem => cartItem.id === item.id);
-      if (existingItem) {
-        return prevCart.map(cartItem =>
-          cartItem.id === item.id ? { ...cartItem, quantity: cartItem.quantity + 1 } : cartItem
-        );
-      }
-      return [...prevCart, { ...item, quantity: 1 }];
-    });
-    showAlert(`${item.name} 已加入購物車！`);
-  };
-
-  const handleUpdateQuantity = (itemId: string, newQuantity: number) => {
-    if (newQuantity <= 0) {
-      handleRemoveFromCart(itemId);
-    } else {
-      setCart(prevCart =>
-        prevCart.map(item => (item.id === itemId ? { ...item, quantity: newQuantity } : item))
-      );
-    }
-  };
-
-  const handleRemoveFromCart = (itemId: string) => {
-    const itemToRemove = cart.find(item => item.id === itemId);
-    setCart(prevCart => prevCart.filter(item => item.id !== itemId));
-    if (itemToRemove) {
-        showAlert(`${itemToRemove.name} 已從購物車移除。`, 'error');
-    }
-  };
-
-  const handleSubmitOrder = async (details: OrderDetails) => {
-    setIsSubmitting(true);
-    try {
-        const { orderNumber, estimatedDeliveryTime } = await processOrder(details, cart);
-
-        const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-        const total = subtotal + SHIPPING_FEE;
-
-        const newConfirmedOrder: ConfirmedOrder = {
-          ...details,
-          orderNumber,
-          estimatedDeliveryTime,
-          items: cart.map(({ name, quantity }) => ({ name, quantity })),
-          subtotal,
-          shippingFee: SHIPPING_FEE,
-          total,
+    // Fetch initial list of restaurants on component mount.
+    useEffect(() => {
+        const loadRestaurants = async () => {
+            // Per guidelines, API key presence should be assumed from environment.
+            // A check here is for developer convenience during development.
+            if (!process.env.API_KEY) {
+                console.error("API_KEY environment variable not set. Application will not function correctly.");
+                setAlert({ message: 'API 金鑰未設定，應用程式無法運作。', type: 'error' });
+                setIsLoading(false);
+                return;
+            }
+            setIsLoading(true);
+            const fetchedRestaurants = await fetchRestaurants();
+            if (fetchedRestaurants.length > 0) {
+                setRestaurants(fetchedRestaurants);
+            } else {
+                setAlert({ message: '無法載入餐廳列表，請稍後再試。', type: 'error' });
+            }
+            setIsLoading(false);
         };
-        
-        const saveResult = await saveOrder(newConfirmedOrder);
+        loadRestaurants();
+    }, []);
 
-        if (!saveResult.success) {
-            throw new Error(saveResult.message || '無法將訂單儲存至後端系統。');
+    const handleSelectRestaurant = async (restaurant: Restaurant) => {
+        setSelectedRestaurant(restaurant);
+        setView(View.MENU);
+        setIsLoading(true);
+        setMenuItems([]); // Clear previous menu
+        const fetchedMenu = await fetchMenu(restaurant.name);
+        if (fetchedMenu.length > 0) {
+            setMenuItems(fetchedMenu);
+        } else {
+             setAlert({ message: `無法載入 ${restaurant.name} 的菜單。`, type: 'error' });
+             // Stay on menu view but show it's empty, or navigate back.
+             // Let's let the user decide, so we stay.
+        }
+        setIsLoading(false);
+    };
+    
+    const navigateToRestaurants = () => {
+        setView(View.RESTAURANTS);
+        setSelectedRestaurant(null);
+    };
+
+    const navigateToCart = () => setView(View.CART);
+    const navigateToCheckout = () => setView(View.CHECKOUT);
+
+    const navigateBackToMenu = () => {
+        if (selectedRestaurant) {
+            setView(View.MENU);
+        } else {
+            navigateToRestaurants();
+        }
+    };
+    
+    const handleAddToCart = (item: MenuItem) => {
+        setCart(prevCart => {
+            const existingItem = prevCart.find(cartItem => cartItem.id === item.id);
+            if (existingItem) {
+                return prevCart.map(cartItem =>
+                    cartItem.id === item.id ? { ...cartItem, quantity: cartItem.quantity + 1 } : cartItem
+                );
+            }
+            return [...prevCart, { ...item, quantity: 1 }];
+        });
+        setAlert({ message: `已將「${item.name}」加入購物車！`, type: 'success' });
+    };
+
+    const handleUpdateQuantity = (itemId: string, newQuantity: number) => {
+        if (newQuantity <= 0) {
+            handleRemoveItem(itemId);
+        } else {
+            setCart(cart => cart.map(item => item.id === itemId ? { ...item, quantity: newQuantity } : item));
+        }
+    };
+
+    const handleRemoveItem = (itemId: string) => {
+        const item = cart.find(i => i.id === itemId);
+        setCart(cart => cart.filter(i => i.id !== itemId));
+        if (item) {
+            setAlert({ message: `已從購物車移除「${item.name}」。`, type: 'success' });
+        }
+    };
+
+    const cartItemCount = useMemo(() => cart.reduce((sum, item) => sum + item.quantity, 0), [cart]);
+    
+    const handleCheckout = async (orderDetails: OrderDetails) => {
+        setIsLoading(true);
+        try {
+            const { orderNumber, estimatedDeliveryTime } = await generateOrderConfirmation(orderDetails, cart);
+            
+            const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+            const total = subtotal + SHIPPING_FEE;
+
+            const finalOrder: ConfirmedOrder = {
+                ...orderDetails,
+                orderNumber,
+                estimatedDeliveryTime,
+                items: cart.map(({ name, quantity }) => ({ name, quantity })),
+                subtotal,
+                shippingFee: SHIPPING_FEE,
+                total,
+            };
+            
+            const saveResult = await saveOrder(finalOrder);
+            if (!saveResult.success) {
+                throw new Error(saveResult.message || '儲存訂單至 Google Sheets 失敗');
+            }
+
+            setConfirmedOrder(finalOrder);
+            setView(View.CONFIRMATION);
+            setCart([]);
+            setAlert({ message: '訂單成功送出！', type: 'success' });
+
+        } catch (error) {
+            console.error("Checkout failed:", error);
+            const errorMessage = error instanceof Error ? error.message : '發生未知錯誤，無法提交訂單。';
+            setAlert({ message: `訂單提交失敗：${errorMessage}`, type: 'error' });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    
+    const handleNewOrder = () => {
+        setConfirmedOrder(null);
+        setSelectedRestaurant(null);
+        setMenuItems([]);
+        setView(View.RESTAURANTS);
+    };
+
+    const renderContent = () => {
+        if (isLoading && view === View.RESTAURANTS) {
+            return <Spinner message="正在為您尋找美味餐廳..." />;
         }
 
-        setConfirmedOrder(newConfirmedOrder);
-        setCart([]);
-        setView(View.CONFIRMATION);
+        switch (view) {
+            case View.RESTAURANTS:
+                return <RestaurantList restaurants={restaurants} onSelectRestaurant={handleSelectRestaurant} />;
+            case View.MENU:
+                if (!selectedRestaurant) return <Spinner message="請先選擇一間餐廳" />;
+                return <MenuView 
+                    restaurant={selectedRestaurant} 
+                    menuItems={menuItems} 
+                    onAddToCart={handleAddToCart} 
+                    onBack={navigateToRestaurants}
+                    isLoading={isLoading} 
+                />;
+            case View.CART:
+                return <CartView 
+                    cart={cart} 
+                    onUpdateQuantity={handleUpdateQuantity} 
+                    onRemoveItem={handleRemoveItem} 
+                    onCheckout={navigateToCheckout} 
+                    onBack={selectedRestaurant ? navigateBackToMenu : navigateToRestaurants}
+                />;
+            case View.CHECKOUT:
+                return <CheckoutView 
+                    onSubmit={handleCheckout} 
+                    onBack={navigateToCart} 
+                    isLoading={isLoading}
+                />;
+            case View.CONFIRMATION:
+                if (!confirmedOrder) return <Spinner message="正在載入訂單確認..." />;
+                return <ConfirmationView order={confirmedOrder} onNewOrder={handleNewOrder} />;
+            default:
+                return <RestaurantList restaurants={restaurants} onSelectRestaurant={handleSelectRestaurant} />;
+        }
+    };
 
-    } catch (error) {
-        console.error("提交訂單失敗:", error);
-        const errorMessage = error instanceof Error ? error.message : '提交訂單時發生未知錯誤。';
-        showAlert(errorMessage, 'error');
-    } finally {
-        setIsSubmitting(false);
-    }
-  };
-  
-  const handleNewOrder = () => {
-    setConfirmedOrder(null);
-    setSelectedRestaurant(null);
-    setMenuItems([]);
-    setView(View.RESTAURANTS);
-  };
-
-  const renderContent = () => {
-    if (isLoading && view === View.RESTAURANTS) return <Spinner message="正在載入餐廳..." />;
-
-    switch (view) {
-      case View.MENU:
-        return selectedRestaurant && <MenuView 
-            restaurant={selectedRestaurant} 
-            menuItems={menuItems} 
-            onAddToCart={handleAddToCart}
-            onBack={() => setView(View.RESTAURANTS)}
-            isLoading={isMenuLoading}
-        />;
-      case View.CART:
-        return <CartView 
-            cart={cart}
-            onUpdateQuantity={handleUpdateQuantity}
-            onRemoveItem={handleRemoveFromCart}
-            onCheckout={() => setView(View.CHECKOUT)}
-            onBack={() => selectedRestaurant ? setView(View.MENU) : setView(View.RESTAURANTS)}
-        />;
-      case View.CHECKOUT:
-        return <CheckoutView onSubmit={handleSubmitOrder} onBack={() => setView(View.CART)} isLoading={isSubmitting} />;
-      case View.CONFIRMATION:
-        return confirmedOrder && <ConfirmationView order={confirmedOrder} onNewOrder={handleNewOrder} />;
-      case View.RESTAURANTS:
-      default:
-        return <RestaurantList restaurants={restaurants} onSelectRestaurant={handleSelectRestaurant} />;
-    }
-  };
-
-  const cartItemCount = cart.reduce((total, item) => total + item.quantity, 0);
-
-  return (
-    <div className="min-h-screen bg-gray-50 text-gray-800 font-sans">
-      {alert && <Alert message={alert.message} type={alert.type} onClose={() => setAlert(null)} />}
-      <Header cartItemCount={cartItemCount} onCartClick={() => setView(View.CART)} onLogoClick={() => setView(View.RESTAURANTS)} />
-      <main className="container mx-auto px-4">
-        {renderContent()}
-      </main>
-      <footer className="bg-gray-800 text-white text-center p-6 mt-12">
-            <p>© {new Date().getFullYear()} Gemini 美食外送. 版權所有.</p>
-        </footer>
-    </div>
-  );
+    return (
+        <div className="bg-gray-50 min-h-screen font-sans">
+            <Header cartItemCount={cartItemCount} onCartClick={navigateToCart} onLogoClick={navigateToRestaurants} />
+            <main className="container mx-auto p-4">
+                {alert && <Alert message={alert.message} type={alert.type} onClose={() => setAlert(null)} />}
+                {renderContent()}
+            </main>
+        </div>
+    );
 };
