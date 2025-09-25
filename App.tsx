@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, Restaurant, MenuItem, CartItem, OrderDetails, ConfirmedOrder } from './types.ts';
-import { fetchRestaurants, fetchMenu, generateOrderConfirmation } from './services/geminiService.ts';
+import { initializeAi, fetchRestaurants, fetchMenu, generateOrderConfirmation } from './services/geminiService.ts';
 import { saveOrder } from './services/orderService.ts';
 import { SHIPPING_FEE } from './constants.ts';
 import { Header } from './components/Header.tsx';
@@ -11,10 +11,10 @@ import { CheckoutView } from './components/CheckoutView.tsx';
 import { ConfirmationView } from './components/ConfirmationView.tsx';
 import { Spinner } from './components/Spinner.tsx';
 import { Alert } from './components/Alert.tsx';
+import { ApiKeyModal } from './components/ApiKeyModal.tsx';
 
-// FIX: Implement the main application component, orchestrating state and views.
-// This resolves the "not a module" error in index.tsx by providing an exported App component.
 export const App = () => {
+    const [apiKey, setApiKey] = useState<string | null>(() => localStorage.getItem('gemini_api_key'));
     const [view, setView] = useState<View>(View.RESTAURANTS);
     const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
     const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
@@ -24,30 +24,34 @@ export const App = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [alert, setAlert] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-    // Fetch initial list of restaurants on component mount.
+    // Effect to initialize AI and fetch restaurants once API key is available.
     useEffect(() => {
-        const loadRestaurants = async () => {
-            // Per guidelines, API key presence should be assumed from environment.
-            // A check here is for developer convenience during development.
-            if (!process.env.API_KEY) {
-                console.error("API_KEY environment variable not set. Application will not function correctly.");
-                setAlert({ message: 'API 金鑰未設定，應用程式無法運作。', type: 'error' });
+        const loadInitialData = async () => {
+            if (!apiKey) {
                 setIsLoading(false);
                 return;
             }
+            
+            initializeAi(apiKey);
             setIsLoading(true);
             const fetchedRestaurants = await fetchRestaurants();
             if (fetchedRestaurants.length > 0) {
                 setRestaurants(fetchedRestaurants);
             } else {
-                setAlert({ message: '無法載入餐廳列表，請稍後再試。', type: 'error' });
+                setAlert({ message: '無法載入餐廳列表，請檢查您的 API 金鑰或稍後再試。', type: 'error' });
             }
             setIsLoading(false);
         };
-        loadRestaurants();
-    }, []);
+        
+        loadInitialData();
+    }, [apiKey]);
+    
+    const handleKeySubmit = (key: string) => {
+        localStorage.setItem('gemini_api_key', key);
+        setApiKey(key);
+    };
 
-    const handleSelectRestaurant = async (restaurant: Restaurant) => {
+    const handleSelectRestaurant = useCallback(async (restaurant: Restaurant) => {
         setSelectedRestaurant(restaurant);
         setView(View.MENU);
         setIsLoading(true);
@@ -57,11 +61,9 @@ export const App = () => {
             setMenuItems(fetchedMenu);
         } else {
              setAlert({ message: `無法載入 ${restaurant.name} 的菜單。`, type: 'error' });
-             // Stay on menu view but show it's empty, or navigate back.
-             // Let's let the user decide, so we stay.
         }
         setIsLoading(false);
-    };
+    }, []);
     
     const navigateToRestaurants = () => {
         setView(View.RESTAURANTS);
@@ -155,8 +157,8 @@ export const App = () => {
     };
 
     const renderContent = () => {
-        if (isLoading && view === View.RESTAURANTS) {
-            return <Spinner message="正在為您尋找美味餐廳..." />;
+        if (isLoading) {
+            return <Spinner message="正在載入..." />;
         }
 
         switch (view) {
@@ -192,6 +194,16 @@ export const App = () => {
                 return <RestaurantList restaurants={restaurants} onSelectRestaurant={handleSelectRestaurant} />;
         }
     };
+
+    // If no API key, render the modal to get it from the user.
+    if (!apiKey) {
+        return (
+             <div className="bg-gray-50 min-h-screen font-sans">
+                 {alert && <Alert message={alert.message} type={alert.type} onClose={() => setAlert(null)} />}
+                 <ApiKeyModal onKeySubmit={handleKeySubmit} />
+             </div>
+        );
+    }
 
     return (
         <div className="bg-gray-50 min-h-screen font-sans">
