@@ -1,5 +1,5 @@
-﻿import React from 'react';
-import { ConfirmedOrder } from '../types';
+import React from 'react';
+import { ConfirmedOrder } from '../types.ts';
 
 interface ConfirmationViewProps {
     order: ConfirmedOrder;
