@@ -1,5 +1,5 @@
-﻿import React from 'react';
-import { MenuItem } from '../types';
+import React from 'react';
+import { MenuItem } from '../types.ts';
 
 interface MenuItemCardProps {
     item: MenuItem;
